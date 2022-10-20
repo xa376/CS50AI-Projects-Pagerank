@@ -6,7 +6,6 @@ import sys
 DAMPING = 0.85
 SAMPLES = 10000
 
-
 def main():
     if len(sys.argv) != 2:
         sys.exit("Usage: python pagerank.py corpus")
@@ -88,7 +87,6 @@ def transition_model(corpus, page, damping_factor):
     #print(pageRandomRates.values())
     return pageRandomRates
 
-
 def sample_pagerank(corpus, damping_factor, n):
     """
     Return PageRank values for each page by sampling `n` pages
@@ -130,8 +128,6 @@ def sample_pagerank(corpus, damping_factor, n):
     
     return estimatedPageRanks
 
-
-
 def iterate_pagerank(corpus, damping_factor):
     """
     Return PageRank values for each page by iteratively updating
@@ -141,7 +137,89 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+
+    # Dict to be returned, key = page name, value = page rank
+    rankDict = {}
+
+    # First part of the calculation
+    part1 = (1 - damping_factor) / len(corpus)
+
+    # Fills ranks dict with all the pages and their initial evenly random rankings
+    for page in corpus.keys():
+        rankDict[page] = 1 / len(corpus)
+
+    # Dict that holds the links to key page that links, value number of links on page
+    linksToPageDict = {}
+
+    endFlag = False
+    count = 0
+    while endFlag == False:
+        endFlag == True
+        count += 1
+        initialValues = rankDict.copy()
+        for webName, currentRank in rankDict.items():
+
+            linksToPageDict = {}
+            originalValue = rankDict[webName]
+
+            # fills links, amount of links dict
+            for key, values in corpus.items():
+                if webName in values:
+                    linksToPageDict[key] = len(values)
+                #this is the if 0 links thing
+                elif len(values) < 1:
+                    linksToPageDict[key] = len(corpus)
+
+            # calculates i sums
+
+
+            total = 0
+
+            #if len(linksToPageDict) < 1:
+             #   total = len(corpus) / len(corpus)
+            for key, values in linksToPageDict.items():
+                #print(values)
+                #print(rankDict[key] / values)
+                total += rankDict[key] / values
+
+            part2 = damping_factor * (total)
+            #print(total)
+            rankDict[webName] = part1 + part2
+            #print(abs(rankDict[webName] - originalValue))
+            #print(abs(rankDict[webName] - originalValue))
+            #print(f"Original: {originalValue}")
+            #print(webName)
+            #print(f"Altered: {rankDict[webName]}")
+        
+        # Normalize????
+        '''
+        print(rankDict.values())
+        xMax = max(list(rankDict.values()))
+        xMin = min(list(rankDict.values()))
+        #print(xMax)
+        #print(xMin)
+        for key, value in rankDict.items():
+            #print(value)
+            rankDict[key] = (value - xMin) / (xMax - xMin)
+        '''
+        #while sum(rankDict.values()) < 1:
+        #    for key, value in rankDict.items():
+        #        rankDict[key] = value * 1.001
+    
+        count = 0
+        for key, value in rankDict.items():
+            #print(f"{abs(initialValues[key] - value > .0001)}")
+            count += abs(initialValues[key] - value)
+            #if abs(initialValues[key] - value) < .0001:
+                #print("hi")
+                #endFlag = True
+                #print(endFlag)
+        if count < .001:
+            endFlag = True
+        #print(endFlag)
+
+        
+    return rankDict
 
 
 if __name__ == "__main__":
