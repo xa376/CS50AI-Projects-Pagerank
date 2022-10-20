@@ -57,7 +57,36 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    # 0.0 - 1.0
+    randomNumber = random.random()
+
+    # All pages the current page links to
+    pageLinks = corpus[page]
+
+    # Holds pages and their random rates of being chosen
+    pageRandomRates = {}
+
+    # Holds all page names
+    pageNames = list(corpus.keys())
+
+    if len(pageLinks) < 1:
+        # Fills dict with chance for random page out of all pages
+        for pageName in pageNames:
+            pageRandomRates[pageName] = 1 / len(corpus)
+    
+    # If number is within damping factor, and page contains links, choose from links, else randomly from all pages
+    else:
+        for pageName in pageNames:
+            # If page linked to current page
+            if pageName in pageLinks:
+                pageRandomRates[pageName] = damping_factor / len(pageLinks)
+            else:
+                pageRandomRates[pageName] = (1 - damping_factor) / len(corpus)
+
+    #print(f"initial: {page}")
+    #print(pageRandomRates.keys())
+    #print(pageRandomRates.values())
+    return pageRandomRates
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,7 +98,38 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+
+    # Holds all page names
+    pageNames = list(corpus.keys())
+
+    # Dict holds all pages and their calculated rank, sums to 1
+    estimatedPageRanks = {}
+
+    # Chooses a random page out of all the page names
+    pageChosen = random.choice(list(corpus.keys()))
+    estimatedPageRanks[pageChosen] = 1
+
+    # For each iteration minus the first random one
+    for i in range(n - 1):
+        pageChances = transition_model(corpus, pageChosen, damping_factor)
+        pageNames = list(pageChances.keys())
+        pageWeights = list(pageChances.values())
+        #print(pageChances.keys())
+        #print(pageChances.values())
+        pageChosen = random.choices(pageNames, weights = pageWeights, k = 1)[0]
+        #print(f"chosen: {pageChosen}\n")
+        if pageChosen not in list(estimatedPageRanks.keys()):
+            estimatedPageRanks[pageChosen] = 1
+        else:
+            estimatedPageRanks[pageChosen] += 1
+    
+    # Assigns values based on amount of times page visited
+    for pageName, pageCount in estimatedPageRanks.items():
+        # Amount of times page visited / total chances
+        estimatedPageRanks[pageName] = pageCount / n
+    
+    return estimatedPageRanks
+
 
 
 def iterate_pagerank(corpus, damping_factor):
