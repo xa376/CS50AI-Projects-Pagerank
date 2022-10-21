@@ -56,36 +56,34 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    # 0.0 - 1.0
-    randomNumber = random.random()
 
-    # All pages the current page links to
+    # Set of all pages the current page links to
     pageLinks = corpus[page]
 
-    # Holds pages and their random rates of being chosen
-    pageRandomRates = {}
-
-    # Holds all page names
+    # List holding all page names
     pageNames = list(corpus.keys())
 
-    if len(pageLinks) < 1:
-        # Fills dict with chance for random page out of all pages
-        for pageName in pageNames:
-            pageRandomRates[pageName] = 1 / len(corpus)
-    
-    # If number is within damping factor, and page contains links, choose from links, else randomly from all pages
-    else:
-        for pageName in pageNames:
-            # If page linked to current page
-            if pageName in pageLinks:
-                pageRandomRates[pageName] = damping_factor / len(pageLinks)
-            else:
-                pageRandomRates[pageName] = (1 - damping_factor) / len(corpus)
+    # Holds each page as a key and their random rates of being chosen as values, will be returned
+    pageChosenRates = {}
 
-    #print(f"initial: {page}")
-    #print(pageRandomRates.keys())
-    #print(pageRandomRates.values())
-    return pageRandomRates
+    # If the current page does not link to any other page, every other page has an equal chance of being chosen
+    if len(pageLinks) < 1:
+
+        # Fills chosen rates dict with every page having an equal value of being chosen
+        for pageName in pageNames:
+            pageChosenRates[pageName] = 1 / len(corpus)
+    # Else the current page contains links to other pages, page chances will be calculated based on those links
+    else:
+        # For every page, if the page is found in the links on the current page, that pages rate of being chosen
+        # is the first formula, else its the second formula
+        for pageName in pageNames:
+            if pageName in pageLinks:
+                pageChosenRates[pageName] = damping_factor / len(pageLinks)
+            else:
+                pageChosenRates[pageName] = (1 - damping_factor) / len(corpus)
+
+    # Returns a dictionary containing the name of each page as a key and its chance of being chosen as a value
+    return pageChosenRates
 
 def sample_pagerank(corpus, damping_factor, n):
     """
@@ -97,35 +95,39 @@ def sample_pagerank(corpus, damping_factor, n):
     PageRank values should sum to 1.
     """
 
-    # Holds all page names
+    # Holds list of all page names
     pageNames = list(corpus.keys())
 
-    # Dict holds all pages and their calculated rank, sums to 1
+    # Dict that will hold all page names as keys and their calculated ranks as values, sums to 1.
+    # Will hold amount of times page was chosen in following for loop before being translated to pagerank
     estimatedPageRanks = {}
 
-    # Chooses a random page out of all the page names
+    # Chooses a random page out of all the page names and sets 1 to the amount of times it was chosen
     pageChosen = random.choice(list(corpus.keys()))
     estimatedPageRanks[pageChosen] = 1
 
-    # For each iteration minus the first random one
+    # For each iteration minus the first one which was randomly chosen, choses a new page based on its probability
+    # of being chosen as calculated by transition_model
     for i in range(n - 1):
+
+        # Calculates and holds the chances of the next page being chosen
         pageChances = transition_model(corpus, pageChosen, damping_factor)
-        pageNames = list(pageChances.keys())
-        pageWeights = list(pageChances.values())
-        #print(pageChances.keys())
-        #print(pageChances.values())
-        pageChosen = random.choices(pageNames, weights = pageWeights, k = 1)[0]
-        #print(f"chosen: {pageChosen}\n")
+
+        # Randomly selects a page based on its probability of being chosen
+        pageChosen = random.choices(list(pageChances.keys()), weights = list(pageChances.values()), k = 1)[0]
+
+        # If the page that was chosen has not been chosen before adds its key to the ranks dict with a value of 1
+        # else the key is already in the dictionary and it 1 is added to the amount of times that page was chosen
         if pageChosen not in list(estimatedPageRanks.keys()):
             estimatedPageRanks[pageChosen] = 1
         else:
             estimatedPageRanks[pageChosen] += 1
     
-    # Assigns values based on amount of times page visited
+    # Assigns page ranks based on amount of times the page was visited / the total amount of pages visited
     for pageName, pageCount in estimatedPageRanks.items():
-        # Amount of times page visited / total chances
         estimatedPageRanks[pageName] = pageCount / n
     
+    # Returns dictionary containing page names as keys and their estimated page ranks as values
     return estimatedPageRanks
 
 def iterate_pagerank(corpus, damping_factor):
@@ -138,88 +140,66 @@ def iterate_pagerank(corpus, damping_factor):
     PageRank values should sum to 1.
     """
 
+    # Holds list of all page names
+    pageNames = list(corpus.keys())
+
     # Dict to be returned, key = page name, value = page rank
-    rankDict = {}
+    estimatedPageRanks = {}
 
-    # First part of the calculation
-    part1 = (1 - damping_factor) / len(corpus)
+    # Initializes the first half of the calculation
+    half1 = (1 - damping_factor) / len(corpus)
 
-    # Fills ranks dict with all the pages and their initial evenly random rankings
-    for page in corpus.keys():
-        rankDict[page] = 1 / len(corpus)
+    # Fills ranks dict with all the page names as keys and their initial even rankings as values
+    for pageName in corpus.keys():
+        estimatedPageRanks[pageName] = 1 / len(corpus)
 
-    # Dict that holds the links to key page that links, value number of links on page
-    linksToPageDict = {}
-
+    # Utilizes probability formula to calculate page ranks, breaks when convergence is reached
     endFlag = False
-    count = 0
     while endFlag == False:
-        endFlag == True
-        count += 1
-        initialValues = rankDict.copy()
-        for webName, currentRank in rankDict.items():
 
-            linksToPageDict = {}
-            originalValue = rankDict[webName]
+        # Copies the initial page ranks, used for convergence testing later
+        initialValues = estimatedPageRanks.copy()
 
-            # fills links, amount of links dict
-            for key, values in corpus.items():
-                if webName in values:
-                    linksToPageDict[key] = len(values)
-                #this is the if 0 links thing
-                elif len(values) < 1:
-                    linksToPageDict[key] = len(corpus)
+        # Iterates through each page calculating that pages new page rank
+        for pageName in pageNames:
 
-            # calculates i sums
+            # Dict that holds the pages that link to pageName, key = page that links to this one, 
+            # value = total number of links on that page
+            linksToPage = {}
 
+            # Fills linksToPage dict
+            for corpusPageName, links in corpus.items():
+                # If current page being calculated is found in a sites links, adds that site and its number
+                # of links to the linksToPage dict
+                if pageName in links:
+                    linksToPage[corpusPageName] = len(links)
+                # If current page has no links at all, adds that site and a link for every page in the corpus
+                # to the linksToPage dict
+                elif len(links) < 1:
+                    linksToPage[corpusPageName] = len(corpus)
 
-            total = 0
+            # Calculates the sum of i as shown in the second half of the equation
+            sum = 0
+            for corpusPageName, links in linksToPage.items():
+                sum += estimatedPageRanks[corpusPageName] / links
 
-            #if len(linksToPageDict) < 1:
-             #   total = len(corpus) / len(corpus)
-            for key, values in linksToPageDict.items():
-                #print(values)
-                #print(rankDict[key] / values)
-                total += rankDict[key] / values
+            # Finishes calculating second half of the equation
+            half2 = damping_factor * (sum)
 
-            part2 = damping_factor * (total)
-            #print(total)
-            rankDict[webName] = part1 + part2
-            #print(abs(rankDict[webName] - originalValue))
-            #print(abs(rankDict[webName] - originalValue))
-            #print(f"Original: {originalValue}")
-            #print(webName)
-            #print(f"Altered: {rankDict[webName]}")
-        
-        # Normalize????
-        '''
-        print(rankDict.values())
-        xMax = max(list(rankDict.values()))
-        xMin = min(list(rankDict.values()))
-        #print(xMax)
-        #print(xMin)
-        for key, value in rankDict.items():
-            #print(value)
-            rankDict[key] = (value - xMin) / (xMax - xMin)
-        '''
-        #while sum(rankDict.values()) < 1:
-        #    for key, value in rankDict.items():
-        #        rankDict[key] = value * 1.001
-    
-        count = 0
-        for key, value in rankDict.items():
-            #print(f"{abs(initialValues[key] - value > .0001)}")
-            count += abs(initialValues[key] - value)
-            #if abs(initialValues[key] - value) < .0001:
-                #print("hi")
-                #endFlag = True
-                #print(endFlag)
-        if count < .001:
+            # Utilizes both halfs of the equation to calculate the current pages new page rank
+            estimatedPageRanks[pageName] = half1 + half2
+
+        # Calculates total variation between the initial page ranks and the newly calculated ones
+        totalVariation = 0
+        for corpusPageName, rank in estimatedPageRanks.items():
+            totalVariation += abs(initialValues[corpusPageName] - rank)
+
+        # If variation is within a small margin, ends loop
+        if totalVariation < .001:
             endFlag = True
-        #print(endFlag)
-
-        
-    return rankDict
+    
+    # Returns a dict containing the estimated page ranks for each page
+    return estimatedPageRanks
 
 
 if __name__ == "__main__":
